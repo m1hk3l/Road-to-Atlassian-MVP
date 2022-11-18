@@ -1,0 +1,41 @@
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.comments.Comment
+import com.atlassian.jira.issue.comments.CommentManager
+import com.atlassian.jira.issue.search.SearchException
+import com.atlassian.jira.issue.search.SearchResults
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.web.bean.PagerFilter
+import com.onresolve.scriptrunner.parameters.annotation.ShortTextInput
+
+@ShortTextInput(label = "Issue search", description = "Enter the JQL search string")
+String searchString = ""
+
+ApplicationUser actor = ComponentAccessor.jiraAuthenticationContext.getLoggedInUser()
+SearchService searchService = ComponentAccessor.getComponent(SearchService)
+CommentManager commentManager = ComponentAccessor.commentManager
+
+SearchService.ParseResult parseResult = searchService.parseQuery(actor, searchString)
+if (!parseResult.valid) return "Invalid query: <br>" + parseResult.errors.toString()
+
+try {
+    SearchResults<Issue> results = searchService.search(actor, parseResult.query, PagerFilter.getUnlimitedFilter())
+    List<Issue> issues = results.results
+
+    int moreThanOneComment
+    List<String> issuesWithMoreThanOneComment = []
+
+    issues.each { Issue issue ->
+        List<Comment> comments = commentManager.getComments(issue)
+        if (comments.size() > 1) {
+            moreThanOneComment++
+            issuesWithMoreThanOneComment << issue.key
+        }
+    }
+    return "Total of " + results.total + " issues found." +
+            "<br>" + moreThanOneComment + " issues have more than one comment:" +
+            "<br>" + issuesWithMoreThanOneComment.toPrettyString()
+} catch (SearchException ex) {
+    return ex.message
+}
