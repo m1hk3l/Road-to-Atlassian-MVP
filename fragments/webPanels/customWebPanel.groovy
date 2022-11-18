@@ -56,7 +56,6 @@ def moreButton = "/jira/secure/CreateSubTaskIssue!default.jspa?parentIssueId=" +
 xml.table(class: "aui aui-table-sortable aui-navgroup"){
     
     tr(){
-        //th( "Key")
         th("Summary")
         th("CustomField A")
         th("CustomField B")
